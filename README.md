@@ -5,12 +5,14 @@ Custom peer to peer blockchain network made from absolute scratch using raw tcp 
 Run main.py to launch the CLI
 
 ## Commands
+### General
 `node start <host> <port>`<br>
 Launches a server at `<host>:<port>`
 
 `node mempool`<br>
 Prints out all current uncomfirmed unmined transactions currently in the mempool
 
+### Blockchain
 `node blockchain`<br>
 Prints out the entire blockchain
 
@@ -20,6 +22,7 @@ Saves the serialized version of the blockchain into the `blockchain` file
 `node blockchain load`<br>
 Loads the blockchain from the serialized `blockchain` file
 
+### Peer management
 `node peers list`<br>
 Lists out all the known peers
 
@@ -32,6 +35,7 @@ Removes a peer with the given info from memory
 `node peers save`<br>
 Saves peer info into the KNOWN_NODES file(autoloads on startup of a node)
 
+### Peer requests
 `node request mempool`<br>
 Requests the mempool from all known peers to sync up with the rest of the chain
 
@@ -41,6 +45,7 @@ Requests the entire blockchain past the last known block on your peer from all p
 `node request peers`<br>
 Requests all the peers known by your known peers and adds them if not already in your list
 
+### Block creation and management
 `node block create`<br>
 Creates a new block using all the uncomfirmed transactions in the mempool
 
@@ -50,6 +55,7 @@ Runs a sha256 based proof of work algorithm to get adequete work for the block
 `node block broadcast`<br>
 Broadcasts the newly created block to all known peers
 
+### Wallets
 `node wallet list`<br>
 Lists all wallets currently saved in the wallets directory with their name, public address, and balance
 
