@@ -1,16 +1,19 @@
+import json
 import time
 from networking import Node
-from ecdsa import InvalidCurveError, SigningKey, NIST256p, VerifyingKey
+from ecdsa import SigningKey, NIST256p
 from blockchain import Block, Blockchain, Transaction
 import os
 import pickle
 import base64
+
 node = Node("", 0, Blockchain())
 selected_wallet = None
 signing_key = None
 verifying_key = None
 block = None
 nonce = 0
+
 while True:
     inp = input(">>> ")
     inp = inp.split(" ")
@@ -40,10 +43,106 @@ while True:
                 if inp[2] == "list":
                     print(node.peers)
                 if inp[2] == "add":
-                    node.peers.add((inp[3], inp[4]))
+                    node.peers.add((inp[3], int(inp[4])))
                 if inp[2] == "remove":
                     node.peers.remove((inp[3], int(inp[4])))
+                if inp[2] == "save":
+                    with open("KNOWN_NODES", "w") as f:
+                        w = ""
+                        for peer in node.peers:
+                            w += f"{peer[0]}:{peer[1]}\n"
+                        f.write(w)
 
+            if inp[1] == "request":
+                if inp[2] == "mempool":
+                    print(f"[NODE] Requesting mempool from {len(node.peers)} peer(s)")
+                    for peer in node.peers:
+                        try:
+                            m = node.request_mempool(peer)
+                            added = 0
+                            for tx in m:
+                                tx_obj = Transaction.from_dict(tx)
+                                if tx_obj.check_signature():
+                                    if tx_obj not in node.chain.mempool:
+                                        node.chain.mempool.add(tx_obj)
+                                        added += 1
+                            print(f"[NODE] Received {len(m)} transaction(s) from {peer}, added {added} new")
+                        except Exception as e:
+                            print(f"[NODE] Failed to get mempool from {peer}: {e}")
+                
+                if inp[2] == "peers":
+                    print(f"[NODE] Requesting peer list from {len(node.peers)} peer(s)")
+                    for peer in list(node.peers):
+                        try:
+                            p = node.request_peers(peer)
+                            added = 0
+                            for new_peer in p:
+                                new_peer = tuple(new_peer)
+                                if new_peer != (node.host, node.port) and new_peer not in node.peers:
+                                    node.peers.add(new_peer)
+                                    added += 1
+                            print(f"[NODE] Received {len(p)} peer(s) from {peer}, added {added} new")
+                        except Exception as e:
+                            print(f"[NODE] Failed to get peers from {peer}: {e}")
+                
+                if inp[2] == "height":
+                    print(f"[NODE] Checking peer heights from {len(node.peers)} peer(s)")
+                    max_height = len(node.chain.chain)
+                    for peer in node.peers:
+                        try:
+                            h = node.request_height(peer)
+                            print(f"[NODE] Peer {peer} has height {h}")
+                            if h > max_height:
+                                max_height = h
+                        except Exception as e:
+                            print(f"[NODE] Failed to get height from {peer}: {e}")
+                    print(f"[NODE] Max height among peers: {max_height}")
+                
+                if inp[2] == "chain":
+                    current_height = len(node.chain.chain)
+                    peer_heights = {}
+                    max_height = current_height
+                
+                    # Step 1: Gather peer heights
+                    for peer in list(node.peers):
+                        try:
+                            h = node.request_height(peer)
+                            peer_heights[peer] = h
+                            if h > max_height:
+                                max_height = h
+                        except Exception as e:
+                            print(f"[NODE] Failed to get height from {peer}: {e}")
+                
+                    # Step 2: Find peers with longer chains
+                    candidate_peers = [peer for peer, height in peer_heights.items() if height > current_height]
+                
+                    if not candidate_peers:
+                        print("[NODE] No peers have a longer chain.")
+                    else:
+                        print(f"[NODE] Trying to sync from {len(candidate_peers)} peer(s) with longer chains.")
+                        for peer in candidate_peers:
+                            print(f"[NODE] Attempting to sync missing blocks from peer {peer}")
+                            temp_blockchain = Blockchain()
+                            temp_blockchain.chain = node.chain.chain
+                
+                            try:
+                                for i in range(current_height, peer_heights[peer]):
+                                    block_data = node.request_block(peer, i)
+                                    block = Block.from_dict(block_data)
+                                    if not temp_blockchain.validate_block(block):
+                                        raise Exception(f"[NODE] Invalid block received at height {i}")
+                                    temp_blockchain.add_block(block)
+                
+                                # If successful, replace the main chain
+                                node.chain = temp_blockchain
+                                print(f"[NODE] Chain successfully extended to height {len(temp_blockchain.chain)} from peer {peer}")
+                                break  # Stop after first valid extension
+                
+                            except Exception as e:
+                                print(f"[NODE] Invalid chain from peer {peer}: {e}")
+                                node.peers.discard(peer)  # Remove the peer permanently
+                
+                
             if inp[1] == "block":
                 if inp[2] == "create":
                     print(f"Creating block with {len(node.chain.mempool)} transactions...")

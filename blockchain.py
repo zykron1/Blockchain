@@ -164,17 +164,21 @@ class Blockchain:
         return self.get_last_block().generate_hash()
 
     def validate_block(self, block):
-        # 1) Validate block previous hash points to the correct previous block
+        # 1) Validate block nonce is +1 of the previous block
+        if not self.get_last_block().nonce + 1 == block.nonce:
+            print("Block validation failed: Nonce is not +1 of previous block")
+
+        # 2) Validate block previous hash points to the correct previous block
         if not block.prev_hash == self.get_last_hash():
             print("Block validation failed: Previous hash does not point to correct previous block")
             return False
 
-        # 2) Validate block has POW
+        # 3) Validate block has POW
         if not block.check_work(4):
             print("Block validation failed: Not enough proof of work")
             return False
 
-        # 3) Validate every transaction in the block
+        # 4) Validate every transaction in the block
         for transaction in block.transactions:
             if not self.validate_transaction(transaction, True):
                 return False

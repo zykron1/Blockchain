@@ -51,16 +51,21 @@ class Node:
         message_type = message.get("type")
         message_data = message.get("data")
         message_from = message.get("from")
-        if not message_type or not message_from:
+        message_parameter = message.get("parameter")
+        if not message_type:
+            return
+        if message_type.startswith("new_") and not message_from:
             return
         if not message_data and not message_type.startswith("get_"):
+            return
+        if not message_parameter and message_type == "get_block":
             return
         if message_type == "new_block":
             self.new_block(conn, message_data, message_from)
         if message_type == "new_transaction":
             self.new_transaction(conn, message_data, message_from)
-        if message_type == "get_blockchain":
-            self.get_blockchain(conn)
+        if message_type == "get_block":
+            self.get_block(conn, message_parameter)
         if message_type == "get_height":
             self.get_height(conn)
         if message_type == "get_mempool":
@@ -108,30 +113,31 @@ class Node:
             self.broadcast_transaction(transaction, ignore=[f,])
         self.chain.add_transaction(transaction)
 
-    def get_blockchain(self, conn):
+    def get_block(self, conn, message_parameter):
         conn.send(json.dumps({
-            "chain": [block.to_dict() for block in self.chain.chain]
-        }))
+            "block": self.chain.chain[int(message_parameter)].to_dict()
+        }).encode())
 
     def get_height(self, conn):
         conn.send(json.dumps({
             "height": len(self.chain.chain)
-        }))
+        }).encode())
 
     def get_mempool(self, conn):
+        print(f"Sending mempool: {self.chain.mempool}")
         conn.send(json.dumps({
-            "pool": self.chain.mempool
-        }))
+            "pool": [transaction.to_external_dict() for transaction in list(self.chain.mempool)]
+        }).encode())
 
     def get_peers(self, conn):
         conn.send(json.dumps({
             "peers": list(self.peers)
-        }))
+        }).encode())
 
     def get_ping(self, conn):
         conn.send(json.dumps({
             "ping": True
-        }))
+        }).encode())
 
     # !!CLIENT CODE!!
     def broadcast_block(self, block, ignore=[]):
@@ -168,3 +174,45 @@ class Node:
                 s.close()
             except Exception as e:
                 print(f"[NODE] Failed to send transaction to {peer} with error {e}")
+
+    def request_height(self, peer):
+        # Connect to peer and reqeuest height
+        print(f"[NODE] Requesting height from {peer}")
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(peer)
+        s.send(json.dumps({
+            "type": "get_height"
+        }).encode())
+        height = json.loads(s.recv(4096).decode())["height"]
+        s.close()
+        return height
+
+    def request_mempool(self, peer):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(peer)
+        s.send(json.dumps({
+            "type": "get_mempool"
+        }).encode())
+        pool = json.loads(s.recv(4096).decode())["pool"]
+        s.close()
+        return pool
+
+    def request_peers(self, peer):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(peer)
+        s.send(json.dumps({
+            "type": "get_peers"
+        }).encode())
+        peers = json.loads(s.recv(4096).decode())["peers"]
+        s.close()
+        return peers
+
+    def request_block(self, peer, block_ind):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect(peer)
+        s.send(json.dumps({
+            "type": "get_block", "parameter": block_ind
+        }).encode())
+        block = json.loads(s.recv(4096).decode())["block"]
+        s.close()
+        return block
