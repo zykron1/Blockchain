@@ -1,0 +1,31 @@
+>> node start 5000
+>> wallets
+WALLET NAME | ADDRESS                                                                                | BALANCE
+faucet       JxOFiumQzTjid2lbCaXRIir6zWR6Zx9VDnx0GMeWr6VsNTHFv6fqzupE+c9jK4tUQeisXcoasDFEtr/PYY6qkA==  20
+>> wallet select faucet
+>> node mempool
+>> wallet send 10 dofijsgr29ewjioreyhwr3u288wer9hw
+TX:
+JxOFiumQzTjid2lbCaXRIir6zWR6Zx9VDnx0GMeWr6VsNTHFv6fqzupE+c9jK4tUQeisXcoasDFEtr/PYY6qkA== (faucet)
+=> dofijsgr29ewjioreyhwr3u288wer9hw (EXTERNAL)
+AMOUNT: 10
+Sign(y/n): y
+Broadcast(y/n): y
+[NODE] Broadcasting Transaction to peer 1/3
+[NODE] Broadcasting Transaction to peer 2/3
+[NODE] Broadcasting Transaction to peer 3/3
+>> node block create
+[NODE] Created block with hash: 0x4b5c6f6d7e8f9a0b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5 with 2 transactions
+>> node block mine
+[NODE] Mining block...
+[NODE] Block mined!
+>> node block broadacst
+[NODE] Broadcasting Transaction to peer 1/3
+[NODE] Broadcasting Transaction to peer 2/3
+[NODE] Broadcasting Transaction to peer 3/3
+
+
+
+node peers remove 0.0.0.0 5000
+node peers remove 0.0.0.0 8000
+wallet send BrNkMS2UkIh+emx44YzjEtrIHXyt4FvogMFLhRZHFd2wmie+40f2RfeFVKvPDtgIItHSkP4roA+VS9MLIBX5GQ== 50
