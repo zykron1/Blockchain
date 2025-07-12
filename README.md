@@ -15,7 +15,7 @@ Prints out all current uncomfirmed unmined transactions currently in the mempool
 Prints out the entire blockchain
 
 `node blockchain save`<br>
-Saves the serialized version of the blockchian into the `blockchain` file
+Saves the serialized version of the blockchain into the `blockchain` file
 
 `node blockchain load`<br>
 Loads the blockchain from the serialized `blockchain` file
@@ -28,6 +28,18 @@ Adds a peer with the given info into memory
 
 `node peers remove <host> <port>`<br>
 Removes a peer with the given info from memory
+
+`node peers save`<br>
+Saves peer info into the KNOWN_NODES file(autoloads on startup of a node)
+
+`node request mempool`<br>
+Requests the mempool from all known peers to sync up with the rest of the chain
+
+`node request chain`<br>
+Requests the entire blockchain past the last known block on your peer from all peers
+
+`node request peers`<br>
+Requests all the peers known by your known peers and adds them if not already in your list
 
 `node block create`<br>
 Creates a new block using all the uncomfirmed transactions in the mempool
