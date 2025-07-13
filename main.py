@@ -218,10 +218,14 @@ while True:
                         print("Key not selected!")
                         continue
                     transaction.sign_transaction(signing_key)
-                node.chain.add_transaction(transaction)
-                nonce += 1
-                print("Added transaction to mempool")
-                node.broadcast_transaction(transaction)
+                    node.chain.add_transaction(transaction)
+                    nonce += 1
+                    print("Added transaction to mempool")
+                    concent = input("Broadcast transaction? (y/n) ")
+                    if concent == "y":
+                        node.broadcast_transaction(transaction)
+                else:
+                    print("Transaction aborted")
 
     except Exception as e:
         print("ERROR: ")
