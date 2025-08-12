@@ -1,8 +1,16 @@
 # Blockchain
 Custom peer to peer blockchain network made from absolute scratch using raw tcp and a custom JSON RPC system.
 
-## USAGE
+## Usage 
 Run main.py to launch the CLI
+
+## Quickstart
+To start, first start the CLI before then running the following commands:
+`node start 0.0.0.0 5000`<br>
+`node request peers`<br>
+`node request chain`<br>
+`node request height`<br>
+
 
 ## Commands
 ### General

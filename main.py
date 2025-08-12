@@ -1,11 +1,15 @@
-import json
-import time
-from networking import Node
-from ecdsa import SigningKey, NIST256p
-from blockchain import Block, Blockchain, Transaction
+import base64
 import os
 import pickle
-import base64
+import time
+
+from ecdsa import NIST256p, SigningKey
+from pprint import pprint
+
+from blockchain import Block, Blockchain, Transaction
+from networking import Node
+from blockchain import Block, Blockchain, Transaction
+from networking import Node
 
 node = Node("", 0, Blockchain())
 selected_wallet = None
@@ -152,7 +156,8 @@ while True:
                             node.chain.get_last_hash(),
                             last_block.nonce+1,
                             node.chain.mempool,
-                            None
+                            None,
+                            base64.b64encode(verifying_key.to_string()).decode(),
                     )
                     print("Block created!")
                 if inp[2] == "mine":
@@ -211,7 +216,7 @@ while True:
                         amount,
                         None
                 )
-                print(transaction.to_internal_json())
+                pprint(transaction.to_internal_dict())
                 concent = input("Sign transaction? (y/n) ")
                 if concent == "y":
                     if not signing_key:

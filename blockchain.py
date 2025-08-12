@@ -3,8 +3,8 @@ from ecdsa import SigningKey, VerifyingKey, NIST256p, BadSignatureError
 import hashlib
 import json
 import base64
-import random
 
+BLOCK_REWARD = 100
 
 class Transaction:
     def __init__(self, nonce, sender, recipient, amount, signature):
@@ -81,12 +81,13 @@ class Transaction:
 
 
 class Block:
-    def __init__(self, timestamp, prev_hash, nonce, transactions, work):
+    def __init__(self, timestamp, prev_hash, nonce, transactions, work, reward_to):
         self.prev_hash = prev_hash
         self.timestamp = timestamp
         self.nonce = nonce
         self.transactions = transactions
         self.work = work
+        self.reward_to = reward_to
 
     @staticmethod
     def from_dict(data):
@@ -95,7 +96,8 @@ class Block:
             data["prev_hash"],
             data["nonce"],
             [Transaction.from_dict(t) for t in data["transactions"]],
-            data["work"]
+            data["work"],
+            data["reward_to"]
         )
 
     def to_dict(self):
@@ -104,7 +106,8 @@ class Block:
             "nonce": self.nonce,
             "timestamp": self.timestamp,
             "transactions": [transaction.to_external_dict() for transaction in self.transactions],
-            "work": self.work
+            "work": self.work,
+            "reward_to": self.reward_to
         }
 
     def to_json(self):
@@ -117,11 +120,14 @@ class Block:
         h = self.generate_hash()
         return h.startswith('0' * n)
 
-    def single_thread_mine(self, n):
+    def single_thread_mine(self, n, start=0):
+        i = start 
         while True:
-            self.work = random.randint(1, 1000000000000)
+            self.work = i
+            print(f"[MINE] Trying work: {i}")
             if self.check_work(n):
                 break
+            i += 1
 
     def __str__(self):
         return self.to_json()
@@ -141,7 +147,7 @@ class Blockchain:
                         5_000_000_000,
                         None
                         )
-                ], None)
+                ], None, None)
         ]
         self.balances = DefaultDict(int)
         self.nonces = DefaultDict(int)
@@ -174,7 +180,7 @@ class Blockchain:
             return False
 
         # 3) Validate block has POW
-        if not block.check_work(4):
+        if not block.check_work(5):
             print("Block validation failed: Not enough proof of work")
             return False
 
@@ -206,10 +212,6 @@ class Blockchain:
             return True
         for tx in self.mempool:
             if tx.sender == transaction.sender and tx.nonce == transaction.nonce:
-                print(tx.sender, tx.nonce)
-                print(transaction.sender, transaction.nonce)
-                print(tx.to_external_dict())
-                print(transaction.to_external_dict())
                 print("Transaction validation failed: Duplicate nonce in mempool")
                 return False
 
@@ -224,6 +226,9 @@ class Blockchain:
             self.balances[transaction.recipient] += transaction.amount
             self.balances[transaction.sender] -= transaction.amount
             self.nonces[transaction.sender] = transaction.nonce 
+
+        self.balances[block.reward_to] += BLOCK_REWARD
+        print(block.reward_to)
 
         self.chain.append(block)
 
