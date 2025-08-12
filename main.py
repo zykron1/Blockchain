@@ -165,7 +165,7 @@ while True:
                         print("No block to mine!")
                         continue
                     print("Mining block...")
-                    block.single_thread_mine(5)
+                    block.multi_process_mine(6)
                     print("Block mined!")
                 if inp[2] == "broadcast":
                     node.broadcast_block(

@@ -3,6 +3,7 @@ from ecdsa import SigningKey, VerifyingKey, NIST256p, BadSignatureError
 import hashlib
 import json
 import base64
+import multiprocessing as mp
 
 BLOCK_REWARD = 100
 
@@ -129,6 +130,67 @@ class Block:
                 break
             i += 1
 
+    def multi_process_mine(self, n, start=0, processes=None, chunk_size=50000):
+        if processes is None:
+            processes = mp.cpu_count()
+    
+        # signed long long sentinel = -1 means "not found yet"
+        counter = mp.Value('q', start)      # shared atomic counter
+        found = mp.Value('q', -1)           # stores found work or -1
+        stop_event = mp.Event()             # tells workers to stop
+    
+        def worker(pid):
+            # local copy of self inside process (pickled). Faster access than Manager proxies.
+            local = self
+            while not stop_event.is_set():
+                # allocate a chunk atomically
+                with counter.get_lock():
+                    base = counter.value
+                    counter.value += chunk_size
+                end = base + chunk_size
+    
+                for candidate in range(base, end):
+                    if stop_event.is_set():
+                        break
+    
+                    # temporarily set candidate on local copy and call check_work
+                    prev = getattr(local, 'work', None)
+                    local.work = candidate
+                    try:
+                        if local.check_work(n):
+                            found.value = candidate
+                            stop_event.set()
+                            print(f"[P{pid}] FOUND work={candidate}")
+                            break
+                    finally:
+                        # restore previous value to avoid side-effects in this process
+                        if prev is None:
+                            try: delattr(local, 'work')
+                            except Exception: pass
+                        else:
+                            local.work = prev
+    
+        procs = []
+        for pid in range(processes):
+            p = mp.Process(target=worker, args=(pid,), daemon=True)
+            p.start()
+            procs.append(p)
+    
+        try:
+            for p in procs:
+                p.join()
+        except KeyboardInterrupt:
+            stop_event.set()
+            for p in procs:
+                p.terminate()
+                p.join()
+    
+        if found.value != -1:
+            # set parent object's work to the found nonce
+            self.work = found.value
+            return True
+        return False
+    
     def __str__(self):
         return self.to_json()
 
@@ -180,7 +242,7 @@ class Blockchain:
             return False
 
         # 3) Validate block has POW
-        if not block.check_work(5):
+        if not block.check_work(6):
             print("Block validation failed: Not enough proof of work")
             return False
 
