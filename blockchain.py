@@ -139,15 +139,14 @@ class Block:
 class Blockchain:
     def __init__(self):
         self.chain = [
-                Block(1752211185.0440528, None, 0, [
-                    Transaction(
-                        0,
-                        None,
-                        "kfdyqoMmZMFage+R02jDm5d2jpsbd9iAt4Lj5Jh9Yv+cOMNjvo7gJbf2wM2CJXLyAGnGEwhZp/+QpjkOzfrnNA==",
-                        5_000_000_000,
-                        None
-                        )
-                ], None, None)
+                Block(
+                    1752211185.0440528,
+                    None,
+                    0,
+                    [],
+                    None,
+                    "kfdyqoMmZMFage+R02jDm5d2jpsbd9iAt4Lj5Jh9Yv+cOMNjvo7gJbf2wM2CJXLyAGnGEwhZp/+QpjkOzfrnNA=="
+            )
         ]
         self.balances = DefaultDict(int)
         self.nonces = DefaultDict(int)
@@ -162,6 +161,7 @@ class Blockchain:
                     continue
                 self.balances[transaction.recipient] += transaction.amount
                 self.balances[transaction.sender] -= transaction.amount
+            self.balances[block.reward_to] += BLOCK_REWARD
 
     def get_last_block(self):
         return self.chain[-1]
